@@ -10,19 +10,19 @@ public class Server {
 
     public static void main(String[] args) {
         Category cat1 = new Category(1, "Chocolates");
-        cat1.addProduct(new Product(101, "White Chocolate", "Creamy white chocolate bar", 15.0, 20, "white.png"));
-        cat1.addProduct(new Product(102, "Dark Chocolate", "70% rich dark chocolate", 18.0, 15, "dark.png"));
-        cat1.addProduct(new Product(103, "Milk Chocolate", "Smooth milk chocolate bar", 12.0, 25, "milk.png"));
-        
-        Category cat2 = new Category(2, "Gifts");
-        cat2.addProduct(new Product(201, "Signature Chocolate Bouquet", "An elegant bouquet of premium assorted chocolates", 200.0, 5, "bouquet.png"));
-        cat2.addProduct(new Product(202, "Luxury Chocolate Tray", "A luxurious tray filled with a selection of fine chocolates", 350.0, 3, "tray.png"));
-        cat2.addProduct(new Product(203, "Elegant Chocolate Gift Box", "A beautifully wrapped gift box filled with premium chocolates", 100.0, 8, "box.png"));
-        
-        Category cat3 = new Category(3, "Hot Chocolate");
-        cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 50, "classic_hc.png"));
-        cat3.addProduct(new Product(302, "Mocha Hot Chocolate", "Hot chocolate infused with coffee", 28.0, 35, "mocha_hc.png"));
-        cat3.addProduct(new Product(303, "White Hot Chocolate", "white hot chocolate", 26.0, 45, "white_hc.png"));
+cat1.addProduct(new Product(101, "White Chocolate", "Creamy white chocolate bar", 15.0, 20, "/images/white_chocolate.png"));
+cat1.addProduct(new Product(102, "Dark Chocolate", "70% rich dark chocolate", 18.0, 15, "/images/dark_chocolate.png"));
+cat1.addProduct(new Product(103, "Milk Chocolate", "Smooth milk chocolate bar", 12.0, 25, "/images/milk_chocolate.png"));
+
+Category cat2 = new Category(2, "Gifts");
+cat2.addProduct(new Product(201, "Chocolate Bouquet", "An elegant bouquet of premium assorted chocolates", 200.0, 5, "/images/chocolate_bouquet.png"));
+cat2.addProduct(new Product(202, "Chocolate Gift Basket", "A basket of assorted chocolates", 350.0, 3, "/images/chocolate_gift_basket.png"));
+cat2.addProduct(new Product(203, "Chocolate Gift Box", "A beautifully wrapped gift box filled with premium chocolates", 100.0, 8, "/images/chocolate_gift_box.png"));
+
+Category cat3 = new Category(3, "Hot Chocolate");
+cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 50, "/images/classic_hot_chocolate.png"));
+cat3.addProduct(new Product(302, "Marshmallow Hot Chocolate", "Hot chocolate with marshmallows", 28.0, 35, "/images/marshmallow_hot_chocolate.png"));
+cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with caramel", 26.0, 45, "/images/caramel_hot_chocolate.png"));
 
         menu.add(cat1);
         menu.add(cat2);
@@ -103,8 +103,7 @@ class ClientHandler implements Runnable {
                     for (Category c : Server.menu) {
                         out.println("CAT," + c.getId() + "," + c.getName());
                         for (Product p : c.getProducts()) {
-                            out.println("PROD," + p.getId() + "," + p.getName() + "," + p.getPrice() + "," + p.getStock());
-                        }
+out.println("PROD," + p.getId() + "," + p.getName() + "," + p.getDescription() + "," + p.getPrice() + "," + p.getStock() + "," + p.getImagePath());                        }
                     }
                     out.println("END_MENU");
                     
