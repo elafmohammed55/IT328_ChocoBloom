@@ -25,4 +25,4 @@ replay_pid*
 # NetBeans / Maven build output
 /target/
 nbactions.xml
-nb-configuration.xml
+nb-configuration.xml 
