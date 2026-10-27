@@ -3,7 +3,6 @@ package com.mycompany.it328_chocobloom;
 import java.awt.Image;
 import java.net.URL;
 import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
 
 /**
  * Member 2 - one product row (JPanel Form, open it in the Design tab).
@@ -43,7 +42,7 @@ public class ProductItemPanel extends javax.swing.JPanel {
         this.stock = newStock;
         stockLabel.setText("Stock: " + newStock);
         quantityComboBox.removeAllItems();
-        for (int i = 1; i <= newStock; i++) {
+        for (int i = 1; i <= 35; i++) {
             quantityComboBox.addItem(String.valueOf(i));
         }
     }
@@ -133,13 +132,7 @@ public class ProductItemPanel extends javax.swing.JPanel {
         }
         int quantity = Integer.parseInt((String) quantityComboBox.getSelectedItem());
 
-        // The cart cannot hold more than the stock shown
-        if (cart.getQuantity(product.getId()) + quantity > stock) {
-            JOptionPane.showMessageDialog(this, "Not enough stock for this quantity.");
-            return;
-        }
         cart.addItem(product, quantity);
-        JOptionPane.showMessageDialog(this, quantity + " x " + product.getName() + " added to cart.");
     }//GEN-LAST:event_addButtonActionPerformed
 
 
@@ -155,3 +148,4 @@ public class ProductItemPanel extends javax.swing.JPanel {
     private javax.swing.JLabel stockLabel;
     // End of variables declaration//GEN-END:variables
 }
+
