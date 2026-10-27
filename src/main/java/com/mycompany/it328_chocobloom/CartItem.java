@@ -1,3 +1,4 @@
+
 package com.mycompany.it328_chocobloom;
 
 import java.io.Serializable;
@@ -16,8 +17,13 @@ public class CartItem implements Serializable {
         this.quantity = quantity;
     }
 
-    public Product getProduct() { return product; }
-    public int getQuantity() { return quantity; }
+    public Product getProduct() {
+        return product;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
 
     public void setQuantity(int quantity) {
         if (quantity <= 0) {
@@ -26,6 +32,15 @@ public class CartItem implements Serializable {
             );
         }
         this.quantity = quantity;
+    }
+
+    // Phase 1: Adjust cart quantity to available stock
+    public void adjustToAvailableStock() {
+        int availableStock = product.getStock();
+
+        if (quantity > availableStock) {
+            quantity = availableStock;
+        }
     }
 
     public double getSubtotal() {
