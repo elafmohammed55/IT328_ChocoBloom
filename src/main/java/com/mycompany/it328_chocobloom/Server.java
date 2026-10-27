@@ -20,9 +20,9 @@ cat2.addProduct(new Product(202, "Chocolate Gift Basket", "A basket of assorted 
 cat2.addProduct(new Product(203, "Chocolate Gift Box", "A beautifully wrapped gift box filled with premium chocolates", 100.0, 8, "/images/chocolate_gift_box.png"));
 
 Category cat3 = new Category(3, "Hot Chocolate");
-cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 50, "/images/classic_hot_chocolate.png"));
-cat3.addProduct(new Product(302, "Marshmallow Hot Chocolate", "Hot chocolate with marshmallows", 28.0, 35, "/images/marshmallow_hot_chocolate.png"));
-cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with caramel", 26.0, 45, "/images/caramel_hot_chocolate.png"));
+cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 30, "/images/classic_hot_chocolate.png"));
+cat3.addProduct(new Product(302, "Marshmallow Hot Chocolate", "Hot chocolate with marshmallows", 28.0, 33, "/images/marshmallow_hot_chocolate.png"));
+cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with caramel", 26.0, 25, "/images/caramel_hot_chocolate.png"));
 
         menu.add(cat1);
         menu.add(cat2);
