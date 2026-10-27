@@ -105,6 +105,34 @@ public class Client {
         return categories;
     }
   
+    public void requestLatestStock() {
+        if (out != null && in != null) {
+            try {
+                System.out.println("[CLIENT] Requesting latest stock from server...");
+                out.println("GET_STOCK"); 
+                
+                String response;
+                while ((response = in.readLine()) != null) {
+                    if (response.equals("END_STOCK")) { 
+                        break;
+                    }
+                
+                    if (response.startsWith("STOCK,")) {
+                        String[] parts = response.split(",");
+                        if (parts.length >= 3) {
+                            int productId = Integer.parseInt(parts[1].trim());
+                            int newQuantity = Integer.parseInt(parts[2].trim());
+                        
+                            CartData.updateAvailableStock(productId, newQuantity);
+                        }
+                    }
+                }
+                System.out.println("[CLIENT] Stock updated successfully!");
+            } catch (Exception e) {
+                System.err.println("[CLIENT ERROR] Failed to retrieve stock: " + e.getMessage());
+            }
+        }
+    }
     public void disconnect() {
         if (out != null) {
            
