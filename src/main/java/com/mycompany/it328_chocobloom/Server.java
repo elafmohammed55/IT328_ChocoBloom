@@ -55,7 +55,13 @@ cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with ca
             
             for (Category c : menu) {
                 for (Product p : c.getProducts()) {
-                    if (p.getId() == productId) {
+                   if (p.getId() == productId) {
+                        int availableStock = p.getStock(); 
+                        
+                        if (quantityRequested > availableStock) {
+                            quantityRequested = availableStock;
+                        }
+                        
                         if (!p.reduceStock(quantityRequested)) {
                             allSuccess = false; 
                         }
