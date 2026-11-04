@@ -7,22 +7,23 @@ import java.util.ArrayList;
 public class Server {
     
     public static ArrayList<Category> menu = new ArrayList<>();
+    public static ArrayList<Order> activeOrders = new ArrayList<>();
 
     public static void main(String[] args) {
         Category cat1 = new Category(1, "Chocolates");
-cat1.addProduct(new Product(101, "White Chocolate", "Creamy white chocolate bar", 15.0, 20, "/images/white_chocolate.png"));
-cat1.addProduct(new Product(102, "Dark Chocolate", "70% rich dark chocolate", 18.0, 15, "/images/dark_chocolate.png"));
-cat1.addProduct(new Product(103, "Milk Chocolate", "Smooth milk chocolate bar", 12.0, 25, "/images/milk_chocolate.png"));
+        cat1.addProduct(new Product(101, "White Chocolate", "Creamy white chocolate bar", 15.0, 20, "/images/white_chocolate.png"));
+        cat1.addProduct(new Product(102, "Dark Chocolate", "70% rich dark chocolate", 18.0, 15, "/images/dark_chocolate.png"));
+        cat1.addProduct(new Product(103, "Milk Chocolate", "Smooth milk chocolate bar", 12.0, 25, "/images/milk_chocolate.png"));
 
-Category cat2 = new Category(2, "Gifts");
-cat2.addProduct(new Product(201, "Chocolate Bouquet", "An elegant bouquet of premium assorted chocolates", 200.0, 5, "/images/chocolate_bouquet.png"));
-cat2.addProduct(new Product(202, "Chocolate Gift Basket", "A basket of assorted chocolates", 350.0, 3, "/images/chocolate_gift_basket.png"));
-cat2.addProduct(new Product(203, "Chocolate Gift Box", "A beautifully wrapped gift box filled with premium chocolates", 100.0, 8, "/images/chocolate_gift_box.png"));
+        Category cat2 = new Category(2, "Gifts");
+        cat2.addProduct(new Product(201, "Chocolate Bouquet", "An elegant bouquet of premium assorted chocolates", 200.0, 5, "/images/chocolate_bouquet.png"));
+        cat2.addProduct(new Product(202, "Chocolate Gift Basket", "A basket of assorted chocolates", 350.0, 3, "/images/chocolate_gift_basket.png"));
+        cat2.addProduct(new Product(203, "Chocolate Gift Box", "A beautifully wrapped gift box filled with premium chocolates", 100.0, 8, "/images/chocolate_gift_box.png"));
 
-Category cat3 = new Category(3, "Hot Chocolate");
-cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 30, "/images/classic_hot_chocolate.png"));
-cat3.addProduct(new Product(302, "Marshmallow Hot Chocolate", "Hot chocolate with marshmallows", 28.0, 33, "/images/marshmallow_hot_chocolate.png"));
-cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with caramel", 26.0, 25, "/images/caramel_hot_chocolate.png"));
+        Category cat3 = new Category(3, "Hot Chocolate");
+        cat3.addProduct(new Product(301, "Classic Hot Chocolate", "Traditional rich hot chocolate", 25.0, 30, "/images/classic_hot_chocolate.png"));
+        cat3.addProduct(new Product(302, "Marshmallow Hot Chocolate", "Hot chocolate with marshmallows", 28.0, 33, "/images/marshmallow_hot_chocolate.png"));
+        cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with caramel", 26.0, 25, "/images/caramel_hot_chocolate.png"));
 
         menu.add(cat1);
         menu.add(cat2);
@@ -46,35 +47,70 @@ cat3.addProduct(new Product(303, "Caramel Hot Chocolate", "Hot chocolate with ca
         }
     }
 
-    public static synchronized String processCartOrder(String[] cartItems) {
-        boolean allSuccess = true;
+    public static Product findProduct(int productId) {
+        for (Category c : menu) {
+            for (Product p : c.getProducts()) {
+                if (p.getId() == productId) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static synchronized String processCartOrder(String[] cartItems, String username) {
+        for (int i = 1; i < cartItems.length; i += 2) {
+            int productId = Integer.parseInt(cartItems[i]);
+            int quantityRequested = Integer.parseInt(cartItems[i+1]);
+            
+            Product p = findProduct(productId);
+            if (p == null) {
+                return "FAILED: Product ID " + productId + " not found.";
+            }
+            if (quantityRequested > p.getStock()) {
+                return "FAILED: Quantity for " + p.getName() + " is more than what is in stock.";
+            }
+        }
+        
+        long timestamp = System.currentTimeMillis();
+        Order newOrder = new Order(timestamp, username);
 
         for (int i = 1; i < cartItems.length; i += 2) {
             int productId = Integer.parseInt(cartItems[i]);
             int quantityRequested = Integer.parseInt(cartItems[i+1]);
             
-            for (Category c : menu) {
-                for (Product p : c.getProducts()) {
-                   if (p.getId() == productId) {
-                        int availableStock = p.getStock(); 
-                        
-                        if (quantityRequested > availableStock) {
-                            quantityRequested = availableStock;
-                        }
-                        
-                        if (!p.reduceStock(quantityRequested)) {
-                            allSuccess = false; 
-                        }
-                    }
-                }
+            Product p = findProduct(productId);
+            p.reduceStock(quantityRequested);
+            newOrder.addItem(productId, quantityRequested);
+        }
+        
+        activeOrders.add(newOrder);
+        return "SUCCESS:" + timestamp;
+    }
+
+    public static synchronized String cancelOrder(long timestamp, String username) {
+        Order targetOrder = null;
+        
+        for (Order o : activeOrders) {
+            if (o.timestamp == timestamp && o.username.equals(username)) {
+                targetOrder = o;
+                break;
             }
         }
         
-        if (allSuccess) {
-            return "SUCCESS: Order processed and stocks reduced.";
-        } else {
-            return "FAILED: Some items were out of stock or invalid quantity.";
+        if (targetOrder == null) {
+            return "FAILED: Order not found.";
         }
+
+        for (OrderItem item : targetOrder.items) {
+            Product p = findProduct(item.productId);
+            if (p != null) {
+                p.increaseStock(item.quantity);
+            }
+        }
+        
+        activeOrders.remove(targetOrder);
+        return "SUCCESS_CANCELLED: Order has been cancelled successfully.";
     }
 }
 
@@ -109,14 +145,34 @@ class ClientHandler implements Runnable {
                     for (Category c : Server.menu) {
                         out.println("CAT," + c.getId() + "," + c.getName());
                         for (Product p : c.getProducts()) {
-out.println("PROD," + p.getId() + "," + p.getName() + "," + p.getDescription() + "," + p.getPrice() + "," + p.getStock() + "," + p.getImagePath());                        }
+                            out.println("PROD," + p.getId() + "," + p.getName() + "," + p.getDescription() + "," + p.getPrice() + "," + p.getStock() + "," + p.getImagePath());                        
+                        }
                     }
                     out.println("END_MENU");
                     
                 } else if (request.startsWith("CHECKOUT")) {
                     String[] parts = request.split(",");
-                    String response = Server.processCartOrder(parts);
+                    String response = Server.processCartOrder(parts, username);
                     out.println(response);
+
+                } else if (request.startsWith("CANCEL_ORDER")) {
+                    String[] parts = request.split(",");
+                    if (parts.length == 2) {
+                        long timestamp = Long.parseLong(parts[1]);
+                        String response = Server.cancelOrder(timestamp, username);
+                        out.println(response);
+                    } else {
+                        out.println("FAILED: Invalid cancel format.");
+                    }
+
+                } else if (request.equals("VIEW_ORDERS")) {
+                    out.println("YOUR_ORDERS:");
+                    for (Order o : Server.activeOrders) {
+                        if (o.username.equals(username)) {
+                            out.println("ORDER," + o.timestamp + "," + o.items.size() + " items");
+                        }
+                    }
+                    out.println("END_ORDERS");
 
                 } else if (request.equals("EXIT")) {
                     out.println("Goodbye!");
