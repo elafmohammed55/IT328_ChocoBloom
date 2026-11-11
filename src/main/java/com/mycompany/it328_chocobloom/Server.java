@@ -3,6 +3,7 @@ package com.mycompany.it328_chocobloom;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     
@@ -72,44 +73,46 @@ public class Server {
             }
         }
         
-        long timestamp = System.currentTimeMillis();
-        Order newOrder = new Order(timestamp, username);
-
+        List<OrderItem> itemsList = new ArrayList<>();
+        
         for (int i = 1; i < cartItems.length; i += 2) {
             int productId = Integer.parseInt(cartItems[i]);
             int quantityRequested = Integer.parseInt(cartItems[i+1]);
             
             Product p = findProduct(productId);
             p.reduceStock(quantityRequested);
-            newOrder.addItem(productId, quantityRequested);
+            itemsList.add(new OrderItem(p, quantityRequested));
         }
         
+        int orderId = (int)(System.currentTimeMillis() % 1000000); 
+        Order newOrder = new Order(orderId, username, itemsList);
         activeOrders.add(newOrder);
-        return "SUCCESS:" + timestamp;
+        
+        return "SUCCESS:" + orderId;
     }
 
-    public static synchronized String cancelOrder(long timestamp, String username) {
+    public static synchronized String cancelOrder(int orderId, String username) {
         Order targetOrder = null;
         
         for (Order o : activeOrders) {
-            if (o.timestamp == timestamp && o.username.equals(username)) {
+            if (o.getOrderId() == orderId && o.getUsername().equals(username) && o.getStatus() == Order.Status.CONFIRMED) {
                 targetOrder = o;
                 break;
             }
         }
         
         if (targetOrder == null) {
-            return "FAILED: Order not found.";
+            return "FAILED: Order not found or already cancelled.";
         }
 
-        for (OrderItem item : targetOrder.items) {
-            Product p = findProduct(item.productId);
+        for (OrderItem item : targetOrder.getItems()) {
+            Product p = findProduct(item.getProductId());
             if (p != null) {
-                p.restoreStock(item.quantity);
+                p.restoreStock(item.getQuantity());
             }
         }
         
-        activeOrders.remove(targetOrder);
+        targetOrder.markCancelled();
         return "SUCCESS_CANCELLED: Order has been cancelled successfully.";
     }
 }
@@ -158,8 +161,8 @@ class ClientHandler implements Runnable {
                 } else if (request.startsWith("CANCEL_ORDER")) {
                     String[] parts = request.split(",");
                     if (parts.length == 2) {
-                        long timestamp = Long.parseLong(parts[1]);
-                        String response = Server.cancelOrder(timestamp, username);
+                        int orderId = Integer.parseInt(parts[1]);
+                        String response = Server.cancelOrder(orderId, username);
                         out.println(response);
                     } else {
                         out.println("FAILED: Invalid cancel format.");
@@ -168,8 +171,8 @@ class ClientHandler implements Runnable {
                 } else if (request.equals("VIEW_ORDERS")) {
                     out.println("YOUR_ORDERS:");
                     for (Order o : Server.activeOrders) {
-                        if (o.username.equals(username)) {
-                            out.println("ORDER," + o.timestamp + "," + o.items.size() + " items");
+                        if (o.getUsername().equals(username) && o.getStatus() == Order.Status.CONFIRMED) {
+                            out.println("ORDER," + o.getOrderId() + "," + o.getItems().size() + " items");
                         }
                     }
                     out.println("END_ORDERS");
