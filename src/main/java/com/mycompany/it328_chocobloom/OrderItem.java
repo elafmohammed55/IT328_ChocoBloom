@@ -41,4 +41,8 @@ public class OrderItem implements Serializable {
     public double getTotalPrice() {
         return unitPrice * quantity;
     }
+
+    public double getSubtotal() {
+        return unitPrice * quantity;
+    }
 }
