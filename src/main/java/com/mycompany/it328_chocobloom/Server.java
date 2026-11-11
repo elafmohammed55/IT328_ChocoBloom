@@ -105,7 +105,7 @@ public class Server {
         for (OrderItem item : targetOrder.items) {
             Product p = findProduct(item.productId);
             if (p != null) {
-                p.increaseStock(item.quantity);
+                p.restoreStock(item.quantity);
             }
         }
         
