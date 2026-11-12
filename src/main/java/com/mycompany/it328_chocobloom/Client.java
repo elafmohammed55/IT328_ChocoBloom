@@ -104,7 +104,38 @@ public class Client {
         }
         return categories;
     }
-  
+
+    public String placeOrder(CartData cart) {
+        try {
+            out.println("ORDER:" + cart.toString()); 
+            return in.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "ERROR";
+        }
+    }
+
+    
+    public String getMyOrders(String username) {
+        try {
+            out.println("GET_ORDERS:" + username);
+            return in.readLine(); 
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "ERROR";
+        }
+    }
+
+   
+    public String cancelOrder(String timestamp) {
+        try {
+            out.println("CANCEL_ORDER:" + timestamp);
+            return in.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "ERROR";
+        }
+    }
     public void disconnect() {
         if (out != null) {
            
