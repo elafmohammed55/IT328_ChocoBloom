@@ -118,6 +118,8 @@ public class Server {
 }
 
 class ClientHandler implements Runnable {
+    private static final java.time.format.DateTimeFormatter TIME_FORMAT =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private Socket socket;
     private String username = "Unknown";
 
@@ -172,7 +174,16 @@ class ClientHandler implements Runnable {
                     out.println("YOUR_ORDERS:");
                     for (Order o : Server.activeOrders) {
                         if (o.getUsername().equals(username) && o.getStatus() == Order.Status.CONFIRMED) {
-                            out.println("ORDER," + o.getOrderId() + "," + o.getItems().size() + " items");
+                            // ORDER,<id>,<timestamp>,<total>,<item x qty; item x qty>
+                            StringBuilder items = new StringBuilder();
+                            for (OrderItem item : o.getItems()) {
+                                if (items.length() > 0) items.append("; ");
+                                items.append(item.getProductName()).append(" x").append(item.getQuantity());
+                            }
+                            out.println("ORDER," + o.getOrderId() + ","
+                                    + o.getTimestamp().format(TIME_FORMAT) + ","
+                                    + String.format(java.util.Locale.US, "%.2f", o.getTotal()) + ","
+                                    + items);
                         }
                     }
                     out.println("END_ORDERS");

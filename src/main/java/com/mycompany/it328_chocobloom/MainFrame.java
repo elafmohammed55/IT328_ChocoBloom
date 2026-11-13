@@ -5,10 +5,13 @@ import java.awt.BorderLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 
 public class MainFrame extends javax.swing.JFrame {
     
@@ -17,6 +20,15 @@ public class MainFrame extends javax.swing.JFrame {
     
     private Client client;
 private final CartData cart = new CartData();   // سلة المستخدم (شغل زميلتك)
+
+// ===== Member 1 - Phase 2 =====
+/** productId -> its row on screen, so a stock update finds the right row. */
+private final Map<Integer, ProductItemPanel> productPanels = new HashMap<>();
+/** Asks the server for the stock every 2 seconds (Functions 5 and 8). */
+private static final int STOCK_REFRESH_MS = 2000;
+private Timer stockTimer;
+private boolean stockRequestRunning = false;
+private OrderHistoryFrame historyFrame;
 
 /** For the Design tab preview only. */
 public MainFrame() {
@@ -31,10 +43,15 @@ public MainFrame(Client client, String username, List<String> menuLines) {
     setLocationRelativeTo(null);
     loadCategories(parseMenu(menuLines));
 
+    // live stock: when any user orders or cancels, every user's rows update
+    stockTimer = new Timer(STOCK_REFRESH_MS, e -> refreshStock());
+    stockTimer.start();
+
     // when the window is closed, tell the server we are leaving
     addWindowListener(new WindowAdapter() {
         @Override
         public void windowClosing(WindowEvent e) {
+            stockTimer.stop();
             MainFrame.this.client.disconnect();
         }
     });
@@ -43,6 +60,7 @@ public MainFrame(Client client, String username, List<String> menuLines) {
 /** One tab per category; each tab has a ProductsListPanel filled with ProductItemPanel rows. */
 private void loadCategories(List<Category> menu) {
     categoryTabs.removeAll();                 // remove the design-time sample tabs
+    productPanels.clear();
     for (Category category : menu) {
         ProductsListPanel list = new ProductsListPanel();
         for (Product product : category.getProducts()) {
@@ -50,10 +68,52 @@ private void loadCategories(List<Category> menu) {
             item.setProduct(product);
             item.setCart(cart);
             list.addProduct(item);
+            productPanels.put(product.getId(), item);
         }
         JPanel wrapper = new JPanel(new BorderLayout());   // keeps rows at the top
         wrapper.add(list, BorderLayout.NORTH);
         categoryTabs.addTab(category.getName(), new JScrollPane(wrapper));
+    }
+}
+
+/**
+ * Member 1 - Phase 2 (Functions 5 and 8).
+ * Gets the latest stock from the server in a background thread, then
+ * calls setStock on every ProductItemPanel. A row whose stock reaches 0
+ * gets its quantity box and Add button disabled (inside setStock).
+ */
+public void refreshStock() {
+    if (client == null || stockRequestRunning) {
+        return;                       // previous request still running
+    }
+    stockRequestRunning = true;
+    new SwingWorker<List<String>, Void>() {
+        @Override
+        protected List<String> doInBackground() {
+            return client.requestMenu();
+        }
+
+        @Override
+        protected void done() {
+            stockRequestRunning = false;
+            try {
+                applyStock(parseMenu(get()));
+            } catch (Exception ex) {
+                // server not reachable this time: try again on the next tick
+            }
+        }
+    }.execute();
+}
+
+/** Puts the stock values from the server on the screen (runs on the Swing thread). */
+private void applyStock(List<Category> menu) {
+    for (Category c : menu) {
+        for (Product p : c.getProducts()) {
+            ProductItemPanel row = productPanels.get(p.getId());
+            if (row != null) {
+                row.setStock(p.getStock());
+            }
+        }
     }
 }
 
@@ -86,6 +146,8 @@ private List<Category> parseMenu(List<String> lines) {
 
         topPanel = new javax.swing.JPanel();
         connectedLabel = new javax.swing.JLabel();
+        buttonsPanel = new javax.swing.JPanel();
+        historyButton = new javax.swing.JButton();
         cartButton = new javax.swing.JButton();
         categoryTabs = new javax.swing.JTabbedPane();
 
@@ -98,10 +160,19 @@ private List<Category> parseMenu(List<String> lines) {
         connectedLabel.setText("Connected as ...");
         topPanel.add(connectedLabel, java.awt.BorderLayout.WEST);
 
+        buttonsPanel.setLayout(new java.awt.GridLayout(1, 2, 5, 0));
+
+        historyButton.setText("Order History");
+        historyButton.setPreferredSize(new java.awt.Dimension(130, 50));
+        historyButton.addActionListener(this::historyButtonActionPerformed);
+        buttonsPanel.add(historyButton);
+
         cartButton.setText("Cart");
         cartButton.setPreferredSize(new java.awt.Dimension(100, 50));
         cartButton.addActionListener(this::cartButtonActionPerformed);
-        topPanel.add(cartButton, java.awt.BorderLayout.LINE_END);
+        buttonsPanel.add(cartButton);
+
+        topPanel.add(buttonsPanel, java.awt.BorderLayout.LINE_END);
 
         getContentPane().add(topPanel, java.awt.BorderLayout.NORTH);
         getContentPane().add(categoryTabs, java.awt.BorderLayout.CENTER);
@@ -125,19 +196,34 @@ private List<Category> parseMenu(List<String> lines) {
                 cartButton.setEnabled(true);
                 try {
                     // if the cart has more than the stock it is reduced; stock 0 removes the item
-                    for (Category c : parseMenu(get())) {
+                    List<Category> menu = parseMenu(get());
+                    for (Category c : menu) {
                         for (Product p : c.getProducts()) {
                             cart.updateAvailableStock(p.getId(), p.getStock());
                         }
                     }
+                    applyStock(menu);
                 } catch (Exception ex) {
                     // server not reachable: show the cart as it is
                 }
-                new CartFrame(cart).setVisible(true);
+                new CartFrame(cart, client).setVisible(true);
             }
         }.execute();
     
     }//GEN-LAST:event_cartButtonActionPerformed
+
+    private void historyButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_historyButtonActionPerformed
+        // Member 1 - Phase 2 (Function 6): one Order History window, reloaded every time it opens
+        if (client == null) {
+            return;
+        }
+        if (historyFrame == null || !historyFrame.isDisplayable()) {
+            historyFrame = new OrderHistoryFrame(client, this::refreshStock);
+        }
+        historyFrame.loadOrders();
+        historyFrame.setVisible(true);
+        historyFrame.toFront();
+    }//GEN-LAST:event_historyButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -165,9 +251,11 @@ private List<Category> parseMenu(List<String> lines) {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel buttonsPanel;
     private javax.swing.JButton cartButton;
     private javax.swing.JTabbedPane categoryTabs;
     private javax.swing.JLabel connectedLabel;
+    private javax.swing.JButton historyButton;
     private javax.swing.JPanel topPanel;
     // End of variables declaration//GEN-END:variables
 }

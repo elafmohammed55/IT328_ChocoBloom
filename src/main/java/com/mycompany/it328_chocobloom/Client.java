@@ -17,7 +17,7 @@ public class Client {
     private String username;
 
     
-    public void connect(String serverAddress, int port) {
+    public synchronized void connect(String serverAddress, int port) {
         try {
             socket = new Socket(serverAddress, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -30,7 +30,7 @@ public class Client {
     }
 
     
-    public String login(String username) {
+    public synchronized String login(String username) {
         this.username = username;
         if (out != null && in != null) {
             try {
@@ -47,7 +47,9 @@ public class Client {
     }
 
     
-    public List<String> requestMenu() {
+    // synchronized: MainFrame asks for the menu every 2 seconds (live stock),
+    // so two requests must never read from the socket at the same time.
+    public synchronized List<String> requestMenu() {
         List<String> menuItems = new ArrayList<>(); 
         
         if (out != null && in != null) {
@@ -105,38 +107,70 @@ public class Client {
         return categories;
     }
 
+    /** Function 4: sends CHECKOUT,<productId>,<qty>,<productId>,<qty>,... (the format the Server reads). */
+    public synchronized String placeOrder(List<CartItem> items) {
+        if (out == null || in == null) {
+            return "FAILED: Not connected to server.";
+        }
+        try {
+            StringBuilder sb = new StringBuilder("CHECKOUT");
+            for (CartItem item : items) {
+                sb.append(",").append(item.getProduct().getId())
+                  .append(",").append(item.getQuantity());
+            }
+            out.println(sb);
+            return in.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "FAILED: " + e.getMessage();
+        }
+    }
+
     public String placeOrder(CartData cart) {
+        return placeOrder(cart.getItems());
+    }
+
+    /**
+     * Function 6 (Member 1): the user's confirmed orders.
+     * Each line: ORDER,<orderId>,<timestamp>,<total>,<item x qty; item x qty>
+     */
+    public synchronized List<String> getMyOrders() {
+        List<String> orders = new ArrayList<>();
+        if (out == null || in == null) {
+            return orders;
+        }
         try {
-            out.println("ORDER:" + cart.toString()); 
+            out.println("VIEW_ORDERS");
+            String line;
+            while ((line = in.readLine()) != null) {
+                if (line.equals("END_ORDERS")) {
+                    break;
+                }
+                if (line.startsWith("ORDER,")) {
+                    orders.add(line);
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("[CLIENT ERROR] Failed to get orders: " + e.getMessage());
+        }
+        return orders;
+    }
+
+    /** Function 6/7 (Member 1): cancel one order, returns the server's reply. */
+    public synchronized String cancelOrder(int orderId) {
+        if (out == null || in == null) {
+            return "FAILED: Not connected to server.";
+        }
+        try {
+            out.println("CANCEL_ORDER," + orderId);
             return in.readLine();
         } catch (IOException e) {
             e.printStackTrace();
-            return "ERROR";
+            return "FAILED: " + e.getMessage();
         }
     }
 
-    
-    public String getMyOrders(String username) {
-        try {
-            out.println("GET_ORDERS:" + username);
-            return in.readLine(); 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "ERROR";
-        }
-    }
-
-   
-    public String cancelOrder(String timestamp) {
-        try {
-            out.println("CANCEL_ORDER:" + timestamp);
-            return in.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "ERROR";
-        }
-    }
-    public void disconnect() {
+    public synchronized void disconnect() {
         if (out != null) {
            
             out.println("EXIT"); 

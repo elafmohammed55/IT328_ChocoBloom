@@ -14,7 +14,7 @@ public class ProductItemPanel extends javax.swing.JPanel {
     private static final String PLACEHOLDER_IMAGE = "/images/placeholder.png";
 
     private Product product;
-    private int stock;
+    private int stock = -1;      // -1 = not shown yet
     private CartData cart;
 
     public ProductItemPanel() {
@@ -37,14 +37,42 @@ public class ProductItemPanel extends javax.swing.JPanel {
         this.cart = cart;
     }
 
-    /** Show a new stock value (called when the team code sends updated stock). */
+    /**
+     * Show a new stock value (Member 1 - Phase 2, Functions 5 and 8).
+     * MainFrame calls this whenever the server's stock changes
+     * (after any user orders or cancels).
+     * Quantity choices go from 1 to the stock; at 0 the quantity
+     * box and the Add button are disabled for this item.
+     */
     public void setStock(int newStock) {
-        this.stock = newStock;
-        stockLabel.setText("Stock: " + newStock);
+        if (newStock == this.stock) {
+            return;                 // nothing changed: keep the user's selection
+        }
+        int selected = quantityComboBox.getSelectedIndex() + 1;   // 0 when nothing selected
+        this.stock = Math.max(0, newStock);
+
         quantityComboBox.removeAllItems();
-        for (int i = 1; i <= 35; i++) {
+        for (int i = 1; i <= this.stock; i++) {
             quantityComboBox.addItem(String.valueOf(i));
         }
+        if (this.stock > 0) {
+            quantityComboBox.setSelectedIndex(Math.min(Math.max(selected, 1), this.stock) - 1);
+        }
+
+        boolean available = this.stock > 0;
+        quantityComboBox.setEnabled(available);
+        addButton.setEnabled(available);
+        if (available) {
+            stockLabel.setText("Stock: " + this.stock);
+            stockLabel.setForeground(javax.swing.UIManager.getColor("Label.foreground"));
+        } else {
+            stockLabel.setText("Sold out");
+            stockLabel.setForeground(java.awt.Color.RED);
+        }
+    }
+
+    public int getStock() {
+        return stock;
     }
 
     public Product getProduct() {
