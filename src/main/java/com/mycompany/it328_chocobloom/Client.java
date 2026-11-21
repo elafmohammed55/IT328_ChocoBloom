@@ -1,6 +1,5 @@
 package com.mycompany.it328_chocobloom;
 
-import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -72,40 +71,6 @@ public class Client {
         return menuItems; 
     }
     
- public List<Category> getParsedMenu() {
-        List<String> rawMenu = requestMenu();
-        List<Category> categories = new ArrayList<>();
-        Category currentCategory = null;
-
-        for (String line : rawMenu) {
-            try {
-                if (line.startsWith("CAT,")) {
-                    String[] parts = line.split(",");
-                    if (parts.length >= 3) {
-                        currentCategory = new Category(Integer.parseInt(parts[1].trim()), parts[2].trim());
-                        categories.add(currentCategory);
-                    }
-                } 
-                else if (line.startsWith("PROD,") && currentCategory != null) {
-                    String[] parts = line.split(",");
-                    if (parts.length >= 5) {
-                        Product product = new Product(
-                            Integer.parseInt(parts[1].trim()), 
-                            parts[2].trim(),                   
-                            "",                         
-                            Double.parseDouble(parts[3].trim()), 
-                            Integer.parseInt(parts[4].trim()),   
-                            ""                          
-                        );
-                        currentCategory.addProduct(product);
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("[CLIENT PARSING ERROR] Failed to parse line: " + line + " -> " + e.getMessage());
-            }
-        }
-        return categories;
-    }
 
     /** Function 4: sends CHECKOUT,<productId>,<qty>,<productId>,<qty>,... (the format the Server reads). */
     public synchronized String placeOrder(List<CartItem> items) {
