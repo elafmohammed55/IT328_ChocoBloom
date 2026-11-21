@@ -172,6 +172,8 @@ class ClientHandler implements Runnable {
 
                 } else if (request.equals("VIEW_ORDERS")) {
                     out.println("YOUR_ORDERS:");
+                    synchronized (Server.class) {
+                    
                     for (Order o : Server.activeOrders) {
                         if (o.getUsername().equals(username) && o.getStatus() == Order.Status.CONFIRMED) {
                             // ORDER,<id>,<timestamp>,<total>,<item x qty; item x qty>
@@ -186,6 +188,7 @@ class ClientHandler implements Runnable {
                                     + items);
                         }
                     }
+                    }     
                     out.println("END_ORDERS");
 
                 } else if (request.equals("EXIT")) {
